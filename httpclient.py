@@ -23,7 +23,7 @@ import socket
 import re
 # you may use urllib to encode data appropriately
 import urllib
-import urlparse
+from urlparse import urlparse
 
 def help():
     print "httpclient.py [GET/POST] [URL]\n"
@@ -35,23 +35,38 @@ class HTTPRequest(object):
 
 class HTTPClient(object):
     def get_host_port(self,url):
+        parsed = urlparse(url)
+        host = parsed.hostname
+        port = parsed.port
+        path = parsed.path
+        #print "host: %s\n" % host
+       #print "port: %s\n" % port
+        #print "path: %s\n" % path
+        if port == None:
+           port = 80
+        url = str(host)+"|"+str(port)+"|"+str(path)
+        print "URL: %s\n" % url
+        return url
 
     def connect(self, host, port):
-        # use sockets! port 8080 by default
+        # use sockets! port 80 by default
         if port == None:
-            port = 8080
+            port = 80
         #connect the client socket
-        socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        socket.connect((host, port))
-        return socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((host, int(port)))
+        return s
 
     def get_code(self, data):
+        print '#in get_code'
         return None
 
     def get_headers(self,data):
+        print '#in get_headers'
         return None
 
     def get_body(self, data):
+        print '#in get_body'
         return None
 
     # read everything from the socket
@@ -70,6 +85,40 @@ class HTTPClient(object):
         print 'inget'
         code = 500
         body = ""
+        url = self.get_host_port(url)
+        url = url.split("|")
+        host = url[0]
+        port = url[1]
+        path = url[2]
+        print "host: %s\nport: %s\npath: %s\n" % (host,port,path)
+
+        socket = self.connect(host, port)
+        if socket != None:
+            if args != None:
+                form_data = urllib.urlencode(args)
+                path += "?" + form_data
+
+            request = "GET %s HTTP/1.1\r\n" \
+                      "Host: %s\r\n" \
+                      "Connection: close\r\n" \
+                      "Accept: */*\r\n\r\n" % (path, host)
+
+            try:
+                socket.send(request)
+            except Exception as e:
+                print e
+                socket.shutdown(socket.SHUT_RDWR)
+                socket.close()
+
+                return HTTPRequest(code, body)
+
+            data = self.recvall(socket)
+
+            #socket.shutdown(socket.SHUT_RDWR)
+            socket.close()
+
+            code = self.get_code(data)
+            body = self.get_body(data)
         return HTTPRequest(code, body)
 
     def POST(self, url, args=None):
