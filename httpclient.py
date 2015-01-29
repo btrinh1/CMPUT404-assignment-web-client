@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright 2013 Abram Hindle
+# Copyright 2013 Abram Hindle, Brian Trinh
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,25 +49,23 @@ class HTTPClient(object):
         return url
 
     def connect(self, host, port):
-        # use sockets! port 80 by default
         if port == None:
             port = 80
-        #connect the client socket
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, int(port)))
         return s
 
     def get_code(self, data):
-        print '#in get_code'
-        return None
+        code = int(data.split()[1])
+        return code
 
     def get_headers(self,data):
-        print '#in get_headers'
-        return None
+        header = data.split("\r\n\r\n")[0]
+        return header
 
     def get_body(self, data):
-        print '#in get_body'
-        return None
+        body = data.split("\r\n\r\n")[1]
+        return body
 
     # read everything from the socket
     def recvall(self, sock):
@@ -82,7 +80,6 @@ class HTTPClient(object):
         return str(buffer)
 
     def GET(self, url, args=None):
-        print 'inget'
         code = 500
         body = ""
         url = self.get_host_port(url)
@@ -90,13 +87,12 @@ class HTTPClient(object):
         host = url[0]
         port = url[1]
         path = url[2]
-        print "host: %s\nport: %s\npath: %s\n" % (host,port,path)
+        #print "host: %s\nport: %s\npath: %s\n" % (host,port,path)
 
         socket = self.connect(host, port)
         if socket != None:
             if args != None:
-                form_data = urllib.urlencode(args)
-                path += "?" + form_data
+                params = urllib.urlencode(args)
 
             request = "GET %s HTTP/1.1\r\n" \
                       "Host: %s\r\n" \
@@ -107,25 +103,52 @@ class HTTPClient(object):
                 socket.send(request)
             except Exception as e:
                 print e
-                socket.shutdown(socket.SHUT_RDWR)
                 socket.close()
-
-                return HTTPRequest(code, body)
 
             data = self.recvall(socket)
 
-            #socket.shutdown(socket.SHUT_RDWR)
-            socket.close()
-
-            code = self.get_code(data)
-            body = self.get_body(data)
-        return HTTPRequest(code, body)
+        return HTTPRequest(self.get_code(data), self.get_body(data))
 
     def POST(self, url, args=None):
-        print 'inpost'
         code = 500
         body = ""
-        return HTTPRequest(code, body)
+        url = self.get_host_port(url)
+        url = url.split("|")
+        host = url[0]
+        port = url[1]
+        path = url[2]
+        #print "host: %s\nport: %s\npath: %s\n" % (host,port,path)
+
+        socket = self.connect(host, port)
+        if socket != None:
+
+            if args == None:
+                length = 0
+                newpath = ""
+            else:
+                params = urllib.urlencode(args)
+                length = len(params)
+
+        request = "POST %s HTTP/1.1\r\n" \
+                  "Host: %s\r\n" \
+                  "Connection: close\r\n" \
+                  "Content-Type: application/x-www-form-urlencoded\r\n" \
+                  "Accept: */*\r\n" \
+                  "Content-Length: %s\r\n\r\n" % (path, host, str(length))
+        #print "REQUEST:: %s" % request
+
+        if args != None:
+            request += params
+
+        try:
+            socket.send(request)
+        except Exception as e:
+            print e
+            socket.close()
+
+        data = self.recvall(socket)
+
+        return HTTPRequest(self.get_code(data), self.get_body(data))
 
     def command(self, url, command="GET", args=None):
         if (command == "POST"):
