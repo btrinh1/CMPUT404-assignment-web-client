@@ -100,6 +100,7 @@ class HTTPClient(object):
                       "Accept: */*\r\n\r\n" % (path, host)
 
             try:
+                print'%s' % request
                 socket.send(request)
             except Exception as e:
                 print e
@@ -141,6 +142,7 @@ class HTTPClient(object):
             request += params
 
         try:
+            print'%s' % request
             socket.send(request)
         except Exception as e:
             print e
