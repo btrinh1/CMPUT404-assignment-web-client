@@ -35,22 +35,18 @@ class HTTPRequest(object):
 
 class HTTPClient(object):
     def get_host_port(self,url):
-        parsed = urlparse(url)
-        host = parsed.hostname
-        port = parsed.port
-        path = parsed.path
-        #print "host: %s\n" % host
-       #print "port: %s\n" % port
-        #print "path: %s\n" % path
+        parsed = urlparse(url) #parses URL
+        host = parsed.hostname #gets hostname
+        port = parsed.port     #gets port
+        path = parsed.path     #gets path
         if port == None:
-           port = 80
+           port = 80           #sets 80 as default
         url = str(host)+"|"+str(port)+"|"+str(path)
-        print "URL: %s\n" % url
         return url
 
     def connect(self, host, port):
         if port == None:
-            port = 80
+            port = 80          #sets 80 as default
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, int(port)))
         return s
@@ -59,7 +55,7 @@ class HTTPClient(object):
         code = int(data.split()[1])
         return code
 
-    def get_headers(self,data):
+    def get_headers(self,data): #is this even used?
         header = data.split("\r\n\r\n")[0]
         return header
 
@@ -83,16 +79,15 @@ class HTTPClient(object):
         code = 500
         body = ""
         url = self.get_host_port(url)
-        url = url.split("|")
+        url = url.split("|") #splits on | added earlier 
         host = url[0]
         port = url[1]
         path = url[2]
-        #print "host: %s\nport: %s\npath: %s\n" % (host,port,path)
 
         socket = self.connect(host, port)
         if socket != None:
             if args != None:
-                params = urllib.urlencode(args)
+                params = urllib.urlencode(args) # encodes args
 
             request = "GET %s HTTP/1.1\r\n" \
                       "Host: %s\r\n" \
@@ -124,11 +119,11 @@ class HTTPClient(object):
         if socket != None:
 
             if args == None:
-                length = 0
-                newpath = ""
+                length = 0 
+                newpath = ""                    # if no argument make length 1. may not need newpath
             else:
-                params = urllib.urlencode(args)
-                length = len(params)
+                params = urllib.urlencode(args) #encodes args
+                length = len(params)            #gets content length
 
         request = "POST %s HTTP/1.1\r\n" \
                   "Host: %s\r\n" \
